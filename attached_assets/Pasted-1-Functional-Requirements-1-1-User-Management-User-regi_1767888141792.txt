@@ -1,0 +1,202 @@
+1. Functional Requirements
+1.1 User Management
+
+User registration (Email / Google / LinkedIn)
+
+Secure login & logout
+
+Password reset
+
+User profile management
+
+1.2 Job Application Management
+
+Add a new job application with:
+
+Company name
+
+Job title / role
+
+Job description (text or URL)
+
+Job location (Remote / Hybrid / Onsite)
+
+Employment type (Full-time / Intern / Contract)
+
+Salary range (optional)
+
+Application date
+
+Edit or delete applications
+
+Duplicate application entries (for similar roles)
+
+1.3 Application Status Tracking
+
+Predefined statuses:
+
+Saved
+
+Applied
+
+Shortlisted
+
+Interview Scheduled
+
+Offer Received
+
+Rejected
+
+On Hold
+
+Custom status creation
+
+Status history (timestamped changes)
+
+1.4 Interview Tracking
+
+Interview rounds tracking (HR / Technical / Managerial)
+
+Interview date, time, mode (Online / In-person)
+
+Interview notes & feedback
+
+Attach meeting links (Zoom, Google Meet)
+
+1.5 Resume & Document Management
+
+Upload multiple resumes
+
+Tag resumes to specific applications
+
+Store cover letters
+
+Track which resume was used for each job
+
+1.6 Follow-ups & Reminders
+
+Set follow-up reminders
+
+Email / in-app notifications
+
+Calendar integration (Google Calendar)
+
+1.7 Company & Recruiter Tracking
+
+Store recruiter contact details
+
+Communication log (calls, emails, LinkedIn messages)
+
+Company notes & research
+
+1.8 Search, Filter & Sorting
+
+Filter by status, company, date, location
+
+Search by job title or company name
+
+Sort by application date or status
+
+1.9 Dashboard & Analytics
+
+Total applications count
+
+Status-wise distribution (charts)
+
+Weekly/monthly application trends
+
+Interview success rate
+
+1.10 Data Export & Import
+
+Export data to CSV / Excel / PDF
+
+Import applications from CSV
+
+LinkedIn job import (optional / advanced)
+
+2. Non-Functional Requirements
+2.1 Performance
+
+Page load time < 2 seconds
+
+Handle thousands of applications per user
+
+2.2 Security
+
+Secure authentication (JWT / OAuth)
+
+Data encryption at rest & in transit
+
+Role-based access (for future multi-user/team mode)
+
+2.3 Usability
+
+Simple and intuitive UI
+
+Mobile responsive design
+
+Accessibility (WCAG compliance)
+
+2.4 Scalability
+
+Support multiple users
+
+Cloud-based deployment
+
+Horizontal scalability
+
+2.5 Reliability
+
+99.9% uptime
+
+Automated backups
+
+Error logging & monitoring
+
+3. Technical Requirements (Example Stack)
+Frontend
+
+React / Angular / Vue
+
+Material UI / Tailwind CSS
+
+Backend
+
+Node.js (Express / NestJS)
+
+Java / Spring Boot
+
+REST APIs
+
+Database
+
+PostgreSQL / MySQL
+
+MongoDB (optional)
+
+Authentication
+
+Firebase Auth / OAuth / JWT
+
+4. Optional Advanced Features (Nice-to-Have)
+
+AI-powered job recommendations
+
+Resume–JD matching score
+
+Auto status updates from emails
+
+Chrome extension for one-click job saving
+
+Team mode for placement cells or recruiters
+
+5. Use Cases (High-Level)
+
+Track all job applications in one place
+
+Never miss interview or follow-up deadlines
+
+Analyze job search effectiveness
+
+Improve resume targeting per role
