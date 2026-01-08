@@ -1,14 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
-import type { InsertInterview, Interview } from "@shared/schema";
+import type { InsertInterview } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 export function useInterviews() {
   return useQuery({
     queryKey: [api.interviews.list.path],
     queryFn: async () => {
-      const res = await fetch(api.interviews.list.path, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch interviews");
+      const res = await apiRequest("GET", api.interviews.list.path);
       return api.interviews.list.responses[200].parse(await res.json());
     },
   });
@@ -20,14 +20,7 @@ export function useCreateInterview() {
 
   return useMutation({
     mutationFn: async (data: InsertInterview) => {
-      const res = await fetch(api.interviews.create.path, {
-        method: api.interviews.create.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
-      
-      if (!res.ok) throw new Error("Failed to schedule interview");
+      const res = await apiRequest("POST", api.interviews.create.path, data);
       return api.interviews.create.responses[201].parse(await res.json());
     },
     onSuccess: () => {
@@ -42,14 +35,9 @@ export function useDeleteInterview() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       const url = buildUrl(api.interviews.delete.path, { id });
-      const res = await fetch(url, { 
-        method: api.interviews.delete.method,
-        credentials: "include"
-      });
-      
-      if (!res.ok) throw new Error("Failed to delete interview");
+      await apiRequest("DELETE", url);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.interviews.list.path] });

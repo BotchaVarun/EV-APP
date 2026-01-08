@@ -57,14 +57,14 @@ export default function CalendarPage() {
             </div>
           ))}
         </div>
-        
+
         <div className="grid grid-cols-7 min-h-[500px]">
           {days.map((day, i) => {
             const dayInterviews = interviews?.filter(int => isSameDay(new Date(int.interviewDate), day));
-            
+
             return (
-              <div 
-                key={day.toISOString()} 
+              <div
+                key={day.toISOString()}
                 className={cn(
                   "border-b border-r border-slate-100 p-2 min-h-[100px] hover:bg-slate-50 transition-colors",
                   !isSameMonth(day, currentDate) && "bg-slate-50/30 text-slate-400",
@@ -77,10 +77,10 @@ export default function CalendarPage() {
                 )}>
                   {format(day, 'd')}
                 </div>
-                
+
                 <div className="space-y-1">
                   {dayInterviews?.map(interview => (
-                     <InterviewItem key={interview.id} interview={interview} />
+                    <InterviewItem key={interview.id} interview={interview} />
                   ))}
                 </div>
               </div>
@@ -98,18 +98,18 @@ function InterviewItem({ interview }: { interview: any }) {
   const { data: app } = useApplications(); // This is inefficient in a loop, normally we'd join in backend or fetch all apps once
   // For now, assuming interview object might not have app name directly if not joined.
   // Ideally, backend should return application details with interview.
-  
+
   // Workaround: if backend doesn't join, we rely on the client cache of applications
   // But let's assume we just show round and time
-  
+
   const { mutate: deleteInterview } = useDeleteInterview();
 
   return (
     <div className="group relative bg-purple-50 border border-purple-100 rounded-lg p-1.5 text-xs cursor-pointer hover:bg-purple-100 transition-colors">
       <div className="font-semibold text-purple-900 truncate">{interview.round}</div>
       <div className="text-purple-700">{format(new Date(interview.interviewDate), 'h:mm a')}</div>
-      
-      <button 
+
+      <button
         onClick={(e) => { e.stopPropagation(); deleteInterview(interview.id); }}
         className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-purple-400 hover:text-red-500 transition-opacity"
       >
@@ -126,14 +126,14 @@ function AddInterviewDialog({ open, onOpenChange }: { open: boolean, onOpenChang
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
+
     // Combine date and time
     const date = formData.get("date") as string;
     const time = formData.get("time") as string;
     const interviewDate = new Date(`${date}T${time}`).toISOString();
 
     const data: InsertInterview = {
-      applicationId: parseInt(formData.get("applicationId") as string),
+      applicationId: formData.get("applicationId") as string,
       round: formData.get("round") as string,
       mode: formData.get("mode") as string,
       interviewDate: interviewDate as unknown as Date, // Cast for type compatibility
@@ -167,7 +167,7 @@ function AddInterviewDialog({ open, onOpenChange }: { open: boolean, onOpenChang
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-             <div className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="round">Round Type</Label>
               <Select name="round" defaultValue="Screening">
                 <SelectTrigger><SelectValue /></SelectTrigger>

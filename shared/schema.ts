@@ -1,86 +1,71 @@
-import { pgTable, text, serial, integer, boolean, timestamp, varchar } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { relations } from "drizzle-orm";
-import { users } from "./models/auth";
 
-export * from "./models/auth";
-
-export const applications = pgTable("applications", {
-  id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id).notNull(),
-  company: text("company").notNull(),
-  title: text("title").notNull(),
-  description: text("description"),
-  location: text("location"),
-  type: text("type"), // Full-time, Intern, Contract
-  salary: text("salary"),
-  applicationDate: timestamp("application_date").defaultNow(),
-  status: text("status").notNull().default("Saved"), // Saved, Applied, Shortlisted, Interview, Offer, Rejected
-  url: text("url"),
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+export const applicationSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  company: z.string().min(1, "Company is required"),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().nullable().optional(),
+  location: z.string().nullable().optional(),
+  type: z.string().nullable().optional(), // Full-time, Intern, Contract
+  salary: z.string().nullable().optional(),
+  applicationDate: z.coerce.date().nullable().optional(),
+  status: z.string().default("Saved"), // Saved, Applied, Shortlisted, Interview, Offer, Rejected
+  url: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
 });
 
-export const interviews = pgTable("interviews", {
-  id: serial("id").primaryKey(),
-  applicationId: integer("application_id").references(() => applications.id).notNull(),
-  round: text("round").notNull(), // HR, Technical, Final
-  interviewDate: timestamp("interview_date").notNull(),
-  mode: text("mode"), // Online, In-person
-  link: text("link"),
-  notes: text("notes"),
-  completed: boolean("completed").default(false),
+export const insertApplicationSchema = applicationSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
-export const recruiters = pgTable("recruiters", {
-  id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id).notNull(),
-  company: text("company"),
-  name: text("name").notNull(),
-  email: text("email"),
-  phone: text("phone"),
-  linkedin: text("linkedin"),
-  notes: text("notes"),
+export const interviewSchema = z.object({
+  id: z.string(),
+  applicationId: z.string(), // Changed to string for Firestore
+  round: z.string().min(1, "Round is required"), // HR, Technical, Final
+  interviewDate: z.coerce.date(),
+  mode: z.string().nullable().optional(), // Online, In-person
+  link: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  completed: z.boolean().default(false).optional(),
 });
 
-export const reminders = pgTable("reminders", {
-  id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id).notNull(),
-  applicationId: integer("application_id").references(() => applications.id),
-  title: text("title").notNull(),
-  dueDate: timestamp("due_date").notNull(),
-  completed: boolean("completed").default(false),
+export const insertInterviewSchema = interviewSchema.omit({ id: true });
+
+export const recruiterSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  company: z.string().nullable().optional(),
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  linkedin: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
 });
 
-// Relations
-export const applicationsRelations = relations(applications, ({ one, many }) => ({
-  user: one(users, { fields: [applications.userId], references: [users.id] }),
-  interviews: many(interviews),
-  reminders: many(reminders),
-}));
+export const insertRecruiterSchema = recruiterSchema.omit({ id: true });
 
-export const interviewsRelations = relations(interviews, ({ one }) => ({
-  application: one(applications, { fields: [interviews.applicationId], references: [applications.id] }),
-}));
+export const reminderSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  applicationId: z.string().nullable().optional(),
+  title: z.string().min(1, "Title is required"),
+  dueDate: z.coerce.date(),
+  completed: z.boolean().default(false).optional(),
+});
 
-export const remindersRelations = relations(reminders, ({ one }) => ({
-  application: one(applications, { fields: [reminders.applicationId], references: [applications.id] }),
-}));
-
-// Schemas
-export const insertApplicationSchema = createInsertSchema(applications).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertInterviewSchema = createInsertSchema(interviews).omit({ id: true });
-export const insertRecruiterSchema = createInsertSchema(recruiters).omit({ id: true });
-export const insertReminderSchema = createInsertSchema(reminders).omit({ id: true });
+export const insertReminderSchema = reminderSchema.omit({ id: true });
 
 // Types
-export type Application = typeof applications.$inferSelect;
+export type Application = z.infer<typeof applicationSchema>;
 export type InsertApplication = z.infer<typeof insertApplicationSchema>;
-export type Interview = typeof interviews.$inferSelect;
+export type Interview = z.infer<typeof interviewSchema>;
 export type InsertInterview = z.infer<typeof insertInterviewSchema>;
-export type Recruiter = typeof recruiters.$inferSelect;
+export type Recruiter = z.infer<typeof recruiterSchema>;
 export type InsertRecruiter = z.infer<typeof insertRecruiterSchema>;
-export type Reminder = typeof reminders.$inferSelect;
+export type Reminder = z.infer<typeof reminderSchema>;
 export type InsertReminder = z.infer<typeof insertReminderSchema>;

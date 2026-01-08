@@ -1,47 +1,70 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@shared/models/auth";
-
-async function fetchUser(): Promise<User | null> {
-  const response = await fetch("/api/auth/user", {
-    credentials: "include",
-  });
-
-  if (response.status === 401) {
-    return null;
-  }
-
-  if (!response.ok) {
-    throw new Error(`${response.status}: ${response.statusText}`);
-  }
-
-  return response.json();
-}
-
-async function logout(): Promise<void> {
-  window.location.href = "/api/logout";
-}
+import { auth, googleProvider } from "@/lib/firebase";
+import { signInWithPopup, signOut, onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export function useAuth() {
-  const queryClient = useQueryClient();
-  const { data: user, isLoading } = useQuery<User | null>({
-    queryKey: ["/api/auth/user"],
-    queryFn: fetchUser,
-    retry: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const loginMutation = useMutation({
+    mutationFn: async () => {
+      try {
+        await signInWithPopup(auth, googleProvider);
+      } catch (error: any) {
+        throw new Error(error.message);
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Login Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   });
 
   const logoutMutation = useMutation({
-    mutationFn: logout,
-    onSuccess: () => {
-      queryClient.setQueryData(["/api/auth/user"], null);
+    mutationFn: async () => {
+      await signOut(auth);
     },
+    onError: (error: Error) => {
+      toast({
+        title: "Logout Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   });
+
+  // Map Firebase User to App User structure if needed, or just use partial
+  // The app expects { id, email, firstName, lastName, profileImageUrl }
+  const user: User | null = currentUser ? {
+    id: currentUser.uid,
+    email: currentUser.email,
+    firstName: currentUser.displayName?.split(" ")[0] || "User",
+    lastName: currentUser.displayName?.split(" ").slice(1).join(" ") || "",
+    profileImageUrl: currentUser.photoURL,
+    // Create/Update dates are not available on the client instantly without fetching from DB, 
+    // but for UI display we might not need them immediately.
+  } : null;
 
   return {
     user,
     isLoading,
-    isAuthenticated: !!user,
-    logout: logoutMutation.mutate,
-    isLoggingOut: logoutMutation.isPending,
+    isAuthenticated: !!currentUser,
+    loginMutation,
+    logoutMutation
   };
 }

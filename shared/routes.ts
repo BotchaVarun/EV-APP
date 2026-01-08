@@ -1,13 +1,13 @@
 import { z } from 'zod';
-import { 
-  insertApplicationSchema, 
-  insertInterviewSchema, 
-  insertRecruiterSchema, 
+import {
+  insertApplicationSchema,
+  insertInterviewSchema,
+  insertRecruiterSchema,
   insertReminderSchema,
-  applications,
-  interviews,
-  recruiters,
-  reminders
+  type Application,
+  type Interview,
+  type Recruiter,
+  type Reminder
 } from './schema';
 
 export const errorSchemas = {
@@ -29,14 +29,14 @@ export const api = {
       method: 'GET' as const,
       path: '/api/applications',
       responses: {
-        200: z.array(z.custom<typeof applications.$inferSelect>()),
+        200: z.array(z.custom<Application>()),
       },
     },
     get: {
       method: 'GET' as const,
       path: '/api/applications/:id',
       responses: {
-        200: z.custom<typeof applications.$inferSelect>(),
+        200: z.custom<Application>(),
         404: errorSchemas.notFound,
       },
     },
@@ -45,7 +45,7 @@ export const api = {
       path: '/api/applications',
       input: insertApplicationSchema,
       responses: {
-        201: z.custom<typeof applications.$inferSelect>(),
+        201: z.custom<Application>(),
         400: errorSchemas.validation,
       },
     },
@@ -54,7 +54,7 @@ export const api = {
       path: '/api/applications/:id',
       input: insertApplicationSchema.partial(),
       responses: {
-        200: z.custom<typeof applications.$inferSelect>(),
+        200: z.custom<Application>(),
         404: errorSchemas.notFound,
       },
     },
@@ -72,7 +72,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/interviews', // Can filter by applicationId
       responses: {
-        200: z.array(z.custom<typeof interviews.$inferSelect>()),
+        200: z.array(z.custom<Interview>()),
       },
     },
     create: {
@@ -80,7 +80,7 @@ export const api = {
       path: '/api/interviews',
       input: insertInterviewSchema,
       responses: {
-        201: z.custom<typeof interviews.$inferSelect>(),
+        201: z.custom<Interview>(),
       },
     },
     update: {
@@ -88,7 +88,7 @@ export const api = {
       path: '/api/interviews/:id',
       input: insertInterviewSchema.partial(),
       responses: {
-        200: z.custom<typeof interviews.$inferSelect>(),
+        200: z.custom<Interview>(),
       },
     },
     delete: {
@@ -104,7 +104,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/recruiters',
       responses: {
-        200: z.array(z.custom<typeof recruiters.$inferSelect>()),
+        200: z.array(z.custom<Recruiter>()),
       },
     },
     create: {
@@ -112,7 +112,7 @@ export const api = {
       path: '/api/recruiters',
       input: insertRecruiterSchema,
       responses: {
-        201: z.custom<typeof recruiters.$inferSelect>(),
+        201: z.custom<Recruiter>(),
       },
     },
     update: {
@@ -120,7 +120,7 @@ export const api = {
       path: '/api/recruiters/:id',
       input: insertRecruiterSchema.partial(),
       responses: {
-        200: z.custom<typeof recruiters.$inferSelect>(),
+        200: z.custom<Recruiter>(),
       },
     },
     delete: {
@@ -136,7 +136,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/reminders',
       responses: {
-        200: z.array(z.custom<typeof reminders.$inferSelect>()),
+        200: z.array(z.custom<Reminder>()),
       },
     },
     create: {
@@ -144,7 +144,7 @@ export const api = {
       path: '/api/reminders',
       input: insertReminderSchema,
       responses: {
-        201: z.custom<typeof reminders.$inferSelect>(),
+        201: z.custom<Reminder>(),
       },
     },
     update: {
@@ -152,7 +152,7 @@ export const api = {
       path: '/api/reminders/:id',
       input: insertReminderSchema.partial(),
       responses: {
-        200: z.custom<typeof reminders.$inferSelect>(),
+        200: z.custom<Reminder>(),
       },
     },
     delete: {

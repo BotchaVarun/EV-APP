@@ -1,14 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
-import type { InsertRecruiter, Recruiter } from "@shared/schema";
+import type { InsertRecruiter } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 export function useRecruiters() {
   return useQuery({
     queryKey: [api.recruiters.list.path],
     queryFn: async () => {
-      const res = await fetch(api.recruiters.list.path, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch recruiters");
+      const res = await apiRequest("GET", api.recruiters.list.path);
       return api.recruiters.list.responses[200].parse(await res.json());
     },
   });
@@ -20,14 +20,7 @@ export function useCreateRecruiter() {
 
   return useMutation({
     mutationFn: async (data: InsertRecruiter) => {
-      const res = await fetch(api.recruiters.create.path, {
-        method: api.recruiters.create.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
-      
-      if (!res.ok) throw new Error("Failed to add recruiter");
+      const res = await apiRequest("POST", api.recruiters.create.path, data);
       return api.recruiters.create.responses[201].parse(await res.json());
     },
     onSuccess: () => {
@@ -42,14 +35,9 @@ export function useDeleteRecruiter() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       const url = buildUrl(api.recruiters.delete.path, { id });
-      const res = await fetch(url, { 
-        method: api.recruiters.delete.method,
-        credentials: "include"
-      });
-      
-      if (!res.ok) throw new Error("Failed to delete recruiter");
+      await apiRequest("DELETE", url);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.recruiters.list.path] });

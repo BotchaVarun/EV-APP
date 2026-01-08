@@ -1,29 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
-import type { InsertApplication, Application } from "@shared/schema";
+import type { InsertApplication } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 export function useApplications() {
   const { toast } = useToast();
-  
+
   return useQuery({
     queryKey: [api.applications.list.path],
     queryFn: async () => {
-      const res = await fetch(api.applications.list.path, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch applications");
+      const res = await apiRequest("GET", api.applications.list.path);
       return api.applications.list.responses[200].parse(await res.json());
     },
   });
 }
 
-export function useApplication(id: number) {
+export function useApplication(id: string) {
   return useQuery({
     queryKey: [api.applications.get.path, id],
     queryFn: async () => {
       const url = buildUrl(api.applications.get.path, { id });
-      const res = await fetch(url, { credentials: "include" });
-      if (res.status === 404) return null;
-      if (!res.ok) throw new Error("Failed to fetch application");
+      const res = await apiRequest("GET", url);
       return api.applications.get.responses[200].parse(await res.json());
     },
     enabled: !!id,
@@ -36,20 +34,7 @@ export function useCreateApplication() {
 
   return useMutation({
     mutationFn: async (data: InsertApplication) => {
-      const res = await fetch(api.applications.create.path, {
-        method: api.applications.create.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
-      
-      if (!res.ok) {
-        if (res.status === 400) {
-          const error = api.applications.create.responses[400].parse(await res.json());
-          throw new Error(error.message);
-        }
-        throw new Error("Failed to create application");
-      }
+      const res = await apiRequest("POST", api.applications.create.path, data);
       return api.applications.create.responses[201].parse(await res.json());
     },
     onSuccess: () => {
@@ -57,10 +42,10 @@ export function useCreateApplication() {
       toast({ title: "Success", description: "Application tracked successfully" });
     },
     onError: (error) => {
-      toast({ 
-        title: "Error", 
+      toast({
+        title: "Error",
         description: error.message || "Failed to create application",
-        variant: "destructive" 
+        variant: "destructive"
       });
     }
   });
@@ -71,16 +56,9 @@ export function useUpdateApplication() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: number } & Partial<InsertApplication>) => {
+    mutationFn: async ({ id, ...updates }: { id: string } & Partial<InsertApplication>) => {
       const url = buildUrl(api.applications.update.path, { id });
-      const res = await fetch(url, {
-        method: api.applications.update.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
-        credentials: "include",
-      });
-
-      if (!res.ok) throw new Error("Failed to update application");
+      const res = await apiRequest("PUT", url, updates);
       return api.applications.update.responses[200].parse(await res.json());
     },
     onSuccess: (data) => {
@@ -99,14 +77,9 @@ export function useDeleteApplication() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       const url = buildUrl(api.applications.delete.path, { id });
-      const res = await fetch(url, { 
-        method: api.applications.delete.method,
-        credentials: "include"
-      });
-      
-      if (!res.ok) throw new Error("Failed to delete application");
+      await apiRequest("DELETE", url);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.applications.list.path] });
