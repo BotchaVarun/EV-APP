@@ -19,6 +19,7 @@ export const applicationSchema = z.object({
 
 export const insertApplicationSchema = applicationSchema.omit({
   id: true,
+  userId: true,
   createdAt: true,
   updatedAt: true,
 });
@@ -47,7 +48,10 @@ export const recruiterSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 
-export const insertRecruiterSchema = recruiterSchema.omit({ id: true });
+export const insertRecruiterSchema = recruiterSchema.omit({
+  id: true,
+  userId: true
+});
 
 export const reminderSchema = z.object({
   id: z.string(),
@@ -58,7 +62,10 @@ export const reminderSchema = z.object({
   completed: z.boolean().default(false).optional(),
 });
 
-export const insertReminderSchema = reminderSchema.omit({ id: true });
+export const insertReminderSchema = reminderSchema.omit({
+  id: true,
+  userId: true
+});
 
 // Types
 export type Application = z.infer<typeof applicationSchema>;
