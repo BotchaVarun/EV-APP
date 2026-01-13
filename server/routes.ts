@@ -3,6 +3,7 @@ import { type Server } from "http";
 import { type IStorage, storage } from "./storage.js";
 import { api } from "../shared/routes.js";
 import { z } from "zod";
+import admin from "firebase-admin";
 import { auth } from "./firebase.js";
 import { DecodedIdToken } from "firebase-admin/auth";
 
@@ -37,6 +38,17 @@ export function registerRoutes(
       res.status(401).json({ message: "Unauthorized - Invalid token" });
     }
   };
+
+  // Health Check
+  app.get("/api/health", (req, res) => {
+    res.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      firebase_apps: admin.apps.length,
+      // Don't expose sensitive info, just check if credential exists
+      has_credential: !!process.env.FIREBASE_SERVICE_ACCOUNT
+    });
+  });
 
   // Applications
   app.get(api.applications.list.path, requireAuth, async (req, res) => {
