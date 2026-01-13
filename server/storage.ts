@@ -19,16 +19,19 @@ export interface IStorage {
   deleteApplication(id: string): Promise<void>;
 
   getInterviews(userId: string): Promise<Interview[]>;
+  getInterview(id: string): Promise<Interview | undefined>;
   createInterview(interview: InsertInterview): Promise<Interview>;
   updateInterview(id: string, interview: Partial<InsertInterview>): Promise<Interview>;
   deleteInterview(id: string): Promise<void>;
 
   getRecruiters(userId: string): Promise<Recruiter[]>;
+  getRecruiter(id: string): Promise<Recruiter | undefined>;
   createRecruiter(recruiter: InsertRecruiter & { userId: string }): Promise<Recruiter>;
   updateRecruiter(id: string, recruiter: Partial<InsertRecruiter>): Promise<Recruiter>;
   deleteRecruiter(id: string): Promise<void>;
 
   getReminders(userId: string): Promise<Reminder[]>;
+  getReminder(id: string): Promise<Reminder | undefined>;
   createReminder(reminder: InsertReminder & { userId: string }): Promise<Reminder>;
   updateReminder(id: string, reminder: Partial<InsertReminder>): Promise<Reminder>;
   deleteReminder(id: string): Promise<void>;
@@ -121,6 +124,12 @@ export class FirestoreStorage implements IStorage {
     return allInterviews.sort((a, b) => b.interviewDate.getTime() - a.interviewDate.getTime());
   }
 
+  async getInterview(id: string): Promise<Interview | undefined> {
+    const doc = await db.collection("interviews").doc(id).get();
+    if (!doc.exists) return undefined;
+    return { id: doc.id, ...doc.data() } as Interview;
+  }
+
   async createInterview(interview: InsertInterview): Promise<Interview> {
     const cleanData = JSON.parse(JSON.stringify(interview));
     const ref = await db.collection("interviews").add(cleanData);
@@ -142,6 +151,12 @@ export class FirestoreStorage implements IStorage {
   async getRecruiters(userId: string): Promise<Recruiter[]> {
     const snapshot = await db.collection("recruiters").where("userId", "==", userId).get();
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Recruiter));
+  }
+
+  async getRecruiter(id: string): Promise<Recruiter | undefined> {
+    const doc = await db.collection("recruiters").doc(id).get();
+    if (!doc.exists) return undefined;
+    return { id: doc.id, ...doc.data() } as Recruiter;
   }
 
   async createRecruiter(recruiter: InsertRecruiter & { userId: string }): Promise<Recruiter> {
@@ -168,6 +183,12 @@ export class FirestoreStorage implements IStorage {
       .orderBy("dueDate")
       .get();
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Reminder));
+  }
+
+  async getReminder(id: string): Promise<Reminder | undefined> {
+    const doc = await db.collection("reminders").doc(id).get();
+    if (!doc.exists) return undefined;
+    return { id: doc.id, ...doc.data() } as Reminder;
   }
 
   async createReminder(reminder: InsertReminder & { userId: string }): Promise<Reminder> {

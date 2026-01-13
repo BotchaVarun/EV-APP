@@ -31,6 +31,7 @@ export const interviewSchema = z.object({
   interviewDate: z.coerce.date(),
   mode: z.string().nullable().optional(), // Online, In-person
   link: z.string().nullable().optional(),
+  resumeUrl: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   completed: z.boolean().default(false).optional(),
 });

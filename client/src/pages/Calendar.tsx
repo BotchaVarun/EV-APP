@@ -11,6 +11,9 @@ import { useApplications } from "@/hooks/use-applications";
 import { useCreateInterview, useDeleteInterview } from "@/hooks/use-interviews";
 import { cn } from "@/lib/utils";
 import type { InsertInterview } from "@shared/schema";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { FileText, Download } from "lucide-react";
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -115,6 +118,19 @@ function InterviewItem({ interview }: { interview: any }) {
       >
         <Trash2 size={12} />
       </button>
+
+      {interview.resumeUrl && (
+        <a
+          href={interview.resumeUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="absolute bottom-1 right-1 text-purple-400 hover:text-purple-700"
+          title="Download Resume"
+        >
+          <FileText size={12} />
+        </a>
+      )}
     </div>
   );
 }
@@ -122,9 +138,11 @@ function InterviewItem({ interview }: { interview: any }) {
 function AddInterviewDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (v: boolean) => void }) {
   const { data: applications } = useApplications();
   const { mutate: create, isPending } = useCreateInterview();
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsUploading(true);
     const formData = new FormData(e.currentTarget);
 
     // Combine date and time
@@ -132,18 +150,37 @@ function AddInterviewDialog({ open, onOpenChange }: { open: boolean, onOpenChang
     const time = formData.get("time") as string;
     const interviewDate = new Date(`${date}T${time}`).toISOString();
 
+    let resumeUrl = "";
+    const resumeFile = formData.get("resume") as File;
+    if (resumeFile && resumeFile.size > 0) {
+      try {
+        const storageRef = ref(storage, `resumes/${Date.now()}_${resumeFile.name}`);
+        const snapshot = await uploadBytes(storageRef, resumeFile);
+        resumeUrl = await getDownloadURL(snapshot.ref);
+      } catch (error) {
+        console.error("Upload failed", error);
+        alert("Failed to upload resume");
+        setIsUploading(false);
+        return;
+      }
+    }
+
     const data: InsertInterview = {
       applicationId: formData.get("applicationId") as string,
       round: formData.get("round") as string,
       mode: formData.get("mode") as string,
-      interviewDate: interviewDate as unknown as Date, // Cast for type compatibility
+      interviewDate: interviewDate as unknown as Date,
       link: formData.get("link") as string,
+      resumeUrl: resumeUrl || undefined,
       notes: formData.get("notes") as string,
       completed: false
     };
 
     create(data, {
-      onSuccess: () => onOpenChange(false)
+      onSuccess: () => {
+        setIsUploading(false);
+        onOpenChange(false);
+      }
     });
   };
 
@@ -208,10 +245,15 @@ function AddInterviewDialog({ open, onOpenChange }: { open: boolean, onOpenChang
             <Input id="link" name="link" placeholder="Zoom link or office address" />
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="resume">Resume / Attachment</Label>
+            <Input id="resume" name="resume" type="file" accept=".pdf,.doc,.docx" />
+          </div>
+
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Scheduling..." : "Schedule"}
+            <Button type="submit" disabled={isPending || isUploading}>
+              {isUploading ? "Uploading..." : (isPending ? "Scheduling..." : "Schedule")}
             </Button>
           </div>
         </form>

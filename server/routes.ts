@@ -130,6 +130,42 @@ export function registerRoutes(
     }
   });
 
+  app.put(api.interviews.update.path, requireAuth, async (req, res) => {
+    const existing = await storage.getInterview(req.params.id);
+    if (!existing) return res.status(404).json({ message: "Not found" });
+
+    // Check application ownership
+    const application = await storage.getApplication(existing.applicationId);
+    if (!application || application.userId !== req.user!.uid) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    try {
+      const input = api.interviews.update.input.parse(req.body);
+      const updated = await storage.updateInterview(req.params.id, input);
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
+  app.delete(api.interviews.delete.path, requireAuth, async (req, res) => {
+    const existing = await storage.getInterview(req.params.id);
+    if (!existing) return res.status(404).json({ message: "Not found" });
+
+    // Check application ownership
+    const application = await storage.getApplication(existing.applicationId);
+    if (!application || application.userId !== req.user!.uid) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    await storage.deleteInterview(req.params.id);
+    res.status(204).send();
+  });
+
   // Recruiters
   app.get(api.recruiters.list.path, requireAuth, async (req, res) => {
     const recruiters = await storage.getRecruiters(req.user!.uid);
@@ -149,6 +185,32 @@ export function registerRoutes(
     }
   });
 
+  app.put(api.recruiters.update.path, requireAuth, async (req, res) => {
+    const existing = await storage.getRecruiter(req.params.id);
+    if (!existing) return res.status(404).json({ message: "Not found" });
+    if (existing.userId !== req.user!.uid) return res.status(403).json({ message: "Forbidden" });
+
+    try {
+      const input = api.recruiters.update.input.parse(req.body);
+      const updated = await storage.updateRecruiter(req.params.id, input);
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
+  app.delete(api.recruiters.delete.path, requireAuth, async (req, res) => {
+    const existing = await storage.getRecruiter(req.params.id);
+    if (!existing) return res.status(404).json({ message: "Not found" });
+    if (existing.userId !== req.user!.uid) return res.status(403).json({ message: "Forbidden" });
+
+    await storage.deleteRecruiter(req.params.id);
+    res.status(204).send();
+  });
+
   // Reminders
   app.get(api.reminders.list.path, requireAuth, async (req, res) => {
     const reminders = await storage.getReminders(req.user!.uid);
@@ -166,6 +228,32 @@ export function registerRoutes(
       }
       throw err;
     }
+  });
+
+  app.put(api.reminders.update.path, requireAuth, async (req, res) => {
+    const existing = await storage.getReminder(req.params.id);
+    if (!existing) return res.status(404).json({ message: "Not found" });
+    if (existing.userId !== req.user!.uid) return res.status(403).json({ message: "Forbidden" });
+
+    try {
+      const input = api.reminders.update.input.parse(req.body);
+      const updated = await storage.updateReminder(req.params.id, input);
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
+  app.delete(api.reminders.delete.path, requireAuth, async (req, res) => {
+    const existing = await storage.getReminder(req.params.id);
+    if (!existing) return res.status(404).json({ message: "Not found" });
+    if (existing.userId !== req.user!.uid) return res.status(403).json({ message: "Forbidden" });
+
+    await storage.deleteReminder(req.params.id);
+    res.status(204).send();
   });
 
   return httpServer;
