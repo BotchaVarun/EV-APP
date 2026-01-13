@@ -198,7 +198,13 @@ function ApplicationDialog({
     let resumeUrl = defaultValues?.resumeUrl || "";
     const resumeFile = formData.get("resume") as File;
 
-    if (resumeFile && resumeFile.size > 0) {
+    if (resumeFile) {
+      if (resumeFile.size > 5 * 1024 * 1024) {
+        alert("File size too large. Please upload a file smaller than 5MB.");
+        setIsUploading(false);
+        return;
+      }
+
       try {
         const storageRef = ref(storage, `resumes/${Date.now()}_${resumeFile.name}`);
         const snapshot = await uploadBytes(storageRef, resumeFile);
