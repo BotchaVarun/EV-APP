@@ -10,7 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Filter, MoreVertical, Trash2, ExternalLink, Pencil } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
+import { format } from "date-fns";
 import type { InsertApplication, Application } from "@shared/schema";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { FileText, Paperclip, Loader2 } from "lucide-react";
 
 const STATUS_OPTIONS = ["Saved", "Applied", "Interview", "Offer", "Rejected"];
 
@@ -22,8 +26,8 @@ export default function Applications() {
   const [editingApp, setEditingApp] = useState<Application | null>(null);
 
   const filteredApps = applications?.filter(app => {
-    const matchesSearch = app.company.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          app.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = app.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "All" || app.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -37,7 +41,7 @@ export default function Applications() {
           <h1 className="text-3xl font-bold text-slate-900">Applications</h1>
           <p className="text-slate-500 mt-1">Manage and track your job applications.</p>
         </div>
-        <Button 
+        <Button
           onClick={() => setIsCreateOpen(true)}
           className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25 rounded-xl px-6"
         >
@@ -50,8 +54,8 @@ export default function Applications() {
       <div className="flex flex-col sm:flex-row gap-3 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <Input 
-            placeholder="Search by company or role..." 
+          <Input
+            placeholder="Search by company or role..."
             className="pl-10 border-slate-200 focus-visible:ring-primary/20"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -78,9 +82,9 @@ export default function Applications() {
       {/* List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredApps?.map(app => (
-          <ApplicationCard 
-            key={app.id} 
-            app={app} 
+          <ApplicationCard
+            key={app.id}
+            app={app}
             onEdit={() => setEditingApp(app)}
           />
         ))}
@@ -91,18 +95,18 @@ export default function Applications() {
         )}
       </div>
 
-      <ApplicationDialog 
-        open={isCreateOpen} 
-        onOpenChange={setIsCreateOpen} 
-        mode="create" 
+      <ApplicationDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        mode="create"
       />
-      
+
       {editingApp && (
-        <ApplicationDialog 
-          open={!!editingApp} 
-          onOpenChange={(open) => !open && setEditingApp(null)} 
-          mode="edit" 
-          defaultValues={editingApp} 
+        <ApplicationDialog
+          open={!!editingApp}
+          onOpenChange={(open) => !open && setEditingApp(null)}
+          mode="edit"
+          defaultValues={editingApp}
         />
       )}
     </div>
@@ -142,10 +146,25 @@ function ApplicationCard({ app, onEdit }: { app: Application; onEdit: () => void
           </DropdownMenu>
         </div>
       </div>
-      
-      <h3 className="font-bold text-slate-900 truncate pr-4">{app.title}</h3>
-      <p className="text-slate-500 text-sm mb-4">{app.company}</p>
-      
+
+      <div className="flex items-start justify-between">
+        <div className="min-w-0 pr-2">
+          <h3 className="font-bold text-slate-900 truncate">{app.title}</h3>
+          <p className="text-slate-500 text-sm mb-4 truncate">{app.company}</p>
+        </div>
+        {app.resumeUrl && (
+          <a
+            href={app.resumeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-shrink-0 text-blue-500 hover:text-blue-700 bg-blue-50 p-1.5 rounded-lg transition-colors border border-blue-100"
+            title="View Resume"
+          >
+            <FileText size={18} />
+          </a>
+        )}
+      </div>
+
       <div className="flex items-center gap-4 text-xs text-slate-400 border-t border-slate-50 pt-3">
         <span>{format(new Date(app.createdAt!), 'MMM d, yyyy')}</span>
         {app.location && <span>• {app.location}</span>}
@@ -154,43 +173,67 @@ function ApplicationCard({ app, onEdit }: { app: Application; onEdit: () => void
   );
 }
 
-function ApplicationDialog({ 
-  open, 
-  onOpenChange, 
-  mode, 
-  defaultValues 
-}: { 
-  open: boolean; 
-  onOpenChange: (open: boolean) => void; 
+function ApplicationDialog({
+  open,
+  onOpenChange,
+  mode,
+  defaultValues
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   mode: "create" | "edit";
   defaultValues?: Application;
 }) {
   const { mutate: create, isPending: isCreating } = useCreateApplication();
   const { mutate: update, isPending: isUpdating } = useUpdateApplication();
-  
+  const [isUploading, setIsUploading] = useState(false);
+
   const isPending = isCreating || isUpdating;
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsUploading(true);
     const formData = new FormData(e.currentTarget);
+
+    let resumeUrl = defaultValues?.resumeUrl || "";
+    const resumeFile = formData.get("resume") as File;
+
+    if (resumeFile && resumeFile.size > 0) {
+      try {
+        const storageRef = ref(storage, `resumes/${Date.now()}_${resumeFile.name}`);
+        const snapshot = await uploadBytes(storageRef, resumeFile);
+        resumeUrl = await getDownloadURL(snapshot.ref);
+      } catch (error) {
+        console.error("Upload failed", error);
+        alert("Failed to upload resume. Please try again.");
+        setIsUploading(false);
+        return;
+      }
+    }
+
     const data: Partial<InsertApplication> = {
       company: formData.get("company") as string,
       title: formData.get("title") as string,
       status: formData.get("status") as string,
       location: formData.get("location") as string,
       url: formData.get("url") as string,
+      resumeUrl: resumeUrl,
       notes: formData.get("notes") as string,
       salary: formData.get("salary") as string,
     };
 
+    const options = {
+      onSuccess: () => {
+        setIsUploading(false);
+        onOpenChange(false);
+      },
+      onError: () => setIsUploading(false)
+    };
+
     if (mode === "create") {
-      create(data as InsertApplication, {
-        onSuccess: () => onOpenChange(false)
-      });
+      create(data as InsertApplication, options);
     } else {
-      update({ id: defaultValues!.id, ...data }, {
-        onSuccess: () => onOpenChange(false)
-      });
+      update({ id: defaultValues!.id, ...data }, options);
     }
   };
 
@@ -211,7 +254,7 @@ function ApplicationDialog({
               <Input id="title" name="title" defaultValue={defaultValues?.title} required />
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
@@ -229,8 +272,8 @@ function ApplicationDialog({
           </div>
 
           <div className="space-y-2">
-             <Label htmlFor="salary">Salary Range</Label>
-             <Input id="salary" name="salary" placeholder="e.g. $120k - $150k" defaultValue={defaultValues?.salary || ""} />
+            <Label htmlFor="salary">Salary Range</Label>
+            <Input id="salary" name="salary" placeholder="e.g. $120k - $150k" defaultValue={defaultValues?.salary || ""} />
           </div>
 
           <div className="space-y-2">
@@ -243,10 +286,41 @@ function ApplicationDialog({
             <Textarea id="notes" name="notes" placeholder="Key requirements, tech stack..." defaultValue={defaultValues?.notes || ""} />
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="resume">Resume / Attachment</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="resume"
+                name="resume"
+                type="file"
+                accept=".pdf,.doc,.docx,.txt"
+                className="flex-1 cursor-pointer file:cursor-pointer file:text-primary file:font-medium"
+              />
+              {defaultValues?.resumeUrl && (
+                <a
+                  href={defaultValues.resumeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs text-blue-600 hover:underline shrink-0"
+                >
+                  <Paperclip size={12} /> Exists
+                </a>
+              )}
+            </div>
+          </div>
+
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Saving..." : (mode === "create" ? "Add Application" : "Save Changes")}
+            <Button type="submit" disabled={isPending || isUploading} className="min-w-[100px]">
+              {isUploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...
+                </>
+              ) : isPending ? (
+                "Saving..."
+              ) : (
+                mode === "create" ? "Add Application" : "Save Changes"
+              )}
             </Button>
           </div>
         </form>

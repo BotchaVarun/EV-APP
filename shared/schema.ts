@@ -12,6 +12,7 @@ export const applicationSchema = z.object({
   applicationDate: z.coerce.date().nullable().optional(),
   status: z.string().default("Saved"), // Saved, Applied, Shortlisted, Interview, Offer, Rejected
   url: z.string().nullable().optional(),
+  resumeUrl: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
@@ -31,7 +32,6 @@ export const interviewSchema = z.object({
   interviewDate: z.coerce.date(),
   mode: z.string().nullable().optional(), // Online, In-person
   link: z.string().nullable().optional(),
-  resumeUrl: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   completed: z.boolean().default(false).optional(),
 });
