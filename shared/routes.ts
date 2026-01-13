@@ -8,7 +8,7 @@ import {
   type Interview,
   type Recruiter,
   type Reminder
-} from './schema';
+} from './schema.js';
 
 export const errorSchemas = {
   validation: z.object({
