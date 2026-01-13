@@ -1,4 +1,4 @@
-import { db } from "./firebase";
+import { db } from "./firebase.js";
 import {
   type Application,
   type InsertApplication,

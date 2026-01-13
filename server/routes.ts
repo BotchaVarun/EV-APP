@@ -1,9 +1,9 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { type Server } from "http";
-import { type IStorage, storage } from "./storage";
+import { type IStorage, storage } from "./storage.js";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { auth } from "./firebase";
+import { auth } from "./firebase.js";
 import { DecodedIdToken } from "firebase-admin/auth";
 
 // Extend Express Request to include user
