@@ -15,10 +15,10 @@ declare global {
   }
 }
 
-export async function registerRoutes(
+export function registerRoutes(
   httpServer: Server,
   app: Express
-): Promise<Server> {
+): Server {
 
   // Middleware to verify Firebase ID Token
   const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
