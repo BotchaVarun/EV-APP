@@ -1,5 +1,4 @@
-import { useInterviews } from "@/hooks/use-interviews";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, startOfWeek, endOfWeek } from "date-fns";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, Video, MapPin, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,9 @@ export default function CalendarPage() {
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
-  const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const startDate = startOfWeek(monthStart);
+  const endDate = endOfWeek(monthEnd);
+  const days = eachDayOfInterval({ start: startDate, end: endDate });
 
   const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
