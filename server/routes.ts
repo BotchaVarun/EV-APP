@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { type Server } from "http";
 import { type IStorage, storage } from "./storage.js";
-import { api } from "@shared/routes";
+import { api } from "../shared/routes.js";
 import { z } from "zod";
 import { auth } from "./firebase.js";
 import { DecodedIdToken } from "firebase-admin/auth";

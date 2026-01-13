@@ -8,8 +8,8 @@ import {
   type InsertRecruiter,
   type Reminder,
   type InsertReminder
-} from "@shared/schema";
-import { type User } from "@shared/models/auth";
+} from "../shared/schema.js";
+import { type User } from "../shared/models/auth.js";
 
 export interface IStorage {
   getApplications(userId: string): Promise<Application[]>;
