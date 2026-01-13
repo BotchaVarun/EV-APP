@@ -10,11 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Filter, MoreVertical, Trash2, ExternalLink, Pencil } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
-import { format } from "date-fns";
 import type { InsertApplication, Application } from "@shared/schema";
-import { storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { FileText, Paperclip, Loader2 } from "lucide-react";
+import { storage } from "@/lib/firebase";
 
 const STATUS_OPTIONS = ["Saved", "Applied", "Interview", "Offer", "Rejected"];
 
@@ -152,17 +150,6 @@ function ApplicationCard({ app, onEdit }: { app: Application; onEdit: () => void
           <h3 className="font-bold text-slate-900 truncate">{app.title}</h3>
           <p className="text-slate-500 text-sm mb-4 truncate">{app.company}</p>
         </div>
-        {app.resumeUrl && (
-          <a
-            href={app.resumeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-shrink-0 text-blue-500 hover:text-blue-700 bg-blue-50 p-1.5 rounded-lg transition-colors border border-blue-100"
-            title="View Resume"
-          >
-            <FileText size={18} />
-          </a>
-        )}
       </div>
 
       <div className="flex items-center gap-4 text-xs text-slate-400 border-t border-slate-50 pt-3">
@@ -186,36 +173,13 @@ function ApplicationDialog({
 }) {
   const { mutate: create, isPending: isCreating } = useCreateApplication();
   const { mutate: update, isPending: isUpdating } = useUpdateApplication();
-  const [isUploading, setIsUploading] = useState(false);
+
 
   const isPending = isCreating || isUpdating;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsUploading(true);
     const formData = new FormData(e.currentTarget);
-
-    let resumeUrl = defaultValues?.resumeUrl || "";
-    const resumeFile = formData.get("resume") as File;
-
-    if (resumeFile) {
-      if (resumeFile.size > 5 * 1024 * 1024) {
-        alert("File size too large. Please upload a file smaller than 5MB.");
-        setIsUploading(false);
-        return;
-      }
-
-      try {
-        const storageRef = ref(storage, `resumes/${Date.now()}_${resumeFile.name}`);
-        const snapshot = await uploadBytes(storageRef, resumeFile);
-        resumeUrl = await getDownloadURL(snapshot.ref);
-      } catch (error) {
-        console.error("Upload failed", error);
-        alert("Failed to upload resume. Please try again.");
-        setIsUploading(false);
-        return;
-      }
-    }
 
     const data: Partial<InsertApplication> = {
       company: formData.get("company") as string,
@@ -223,17 +187,14 @@ function ApplicationDialog({
       status: formData.get("status") as string,
       location: formData.get("location") as string,
       url: formData.get("url") as string,
-      resumeUrl: resumeUrl,
       notes: formData.get("notes") as string,
       salary: formData.get("salary") as string,
     };
 
     const options = {
       onSuccess: () => {
-        setIsUploading(false);
         onOpenChange(false);
-      },
-      onError: () => setIsUploading(false)
+      }
     };
 
     if (mode === "create") {
@@ -292,41 +253,12 @@ function ApplicationDialog({
             <Textarea id="notes" name="notes" placeholder="Key requirements, tech stack..." defaultValue={defaultValues?.notes || ""} />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="resume">Resume / Attachment</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="resume"
-                name="resume"
-                type="file"
-                accept=".pdf,.doc,.docx,.txt"
-                className="flex-1 cursor-pointer file:cursor-pointer file:text-primary file:font-medium"
-              />
-              {defaultValues?.resumeUrl && (
-                <a
-                  href={defaultValues.resumeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-xs text-blue-600 hover:underline shrink-0"
-                >
-                  <Paperclip size={12} /> Exists
-                </a>
-              )}
-            </div>
-          </div>
+
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={isPending || isUploading} className="min-w-[100px]">
-              {isUploading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...
-                </>
-              ) : isPending ? (
-                "Saving..."
-              ) : (
-                mode === "create" ? "Add Application" : "Save Changes"
-              )}
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Saving..." : (mode === "create" ? "Add Application" : "Save Changes")}
             </Button>
           </div>
         </form>

@@ -12,7 +12,6 @@ export const applicationSchema = z.object({
   applicationDate: z.coerce.date().nullable().optional(),
   status: z.string().default("Saved"), // Saved, Applied, Shortlisted, Interview, Offer, Rejected
   url: z.string().nullable().optional(),
-  resumeUrl: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
