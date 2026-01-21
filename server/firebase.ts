@@ -1,23 +1,32 @@
 import admin from "firebase-admin";
+import { readFileSync } from "fs";
 
 // Initialize Firebase Admin
 try {
     if (!admin.apps.length) {
-        const serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT;
-
-        if (serviceAccountStr) {
+        const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT;
+        if (serviceAccountPath) {
             try {
-                const serviceAccount = JSON.parse(serviceAccountStr);
+                let serviceAccount;
+                // If the env var contains the JSON content directly
+                if (serviceAccountPath.trim().startsWith('{')) {
+                    serviceAccount = JSON.parse(serviceAccountPath);
+                } else {
+                    // Otherwise treat it as a file path
+                    const serviceAccountJson = readFileSync(serviceAccountPath, 'utf8');
+                    serviceAccount = JSON.parse(serviceAccountJson);
+                }
+
                 admin.initializeApp({
                     credential: admin.credential.cert(serviceAccount),
                 });
-                console.log("Firebase Admin initialized with service account");
+                console.error("Firebase Admin initialized with service account");
             } catch (parseError) {
-                console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT JSON. Falling back to default init.", parseError);
+                console.error("Failed to read or parse FIREBASE_SERVICE_ACCOUNT file. Falling back to default init.", parseError);
                 admin.initializeApp();
             }
         } else {
-            console.warn("FIREBASE_SERVICE_ACCOUNT not set. initializing with default credentials (ADC).");
+            console.error("FIREBASE_SERVICE_ACCOUNT not set. initializing with default credentials (ADC).");
             admin.initializeApp();
         }
     }
@@ -27,6 +36,5 @@ try {
 }
 
 // Export safe accessors or initialized instances
-// If initialization failed, these might throw, but hopefully the try-catch above caught the init error.
 export const db = admin.firestore();
 export const auth = admin.auth();
