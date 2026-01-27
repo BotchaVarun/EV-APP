@@ -74,6 +74,6 @@ async function main() {
 }
 
 main().catch((error) => {
-    console.error("Fatal error in proxy:", error);
+    console.error("It was a error", error);
     process.exit(1);
 });
