@@ -8,7 +8,7 @@ import { z } from "zod";
 async function main() {
     // 1. Connect to the Remote SSE Server acting as a Client
     const transportToRemote = new SSEClientTransport(
-        new URL("http://localhost:3001/sse")
+        new URL("https://ev-app-c32j.onrender.com/sse")
     );
 
     const client = new Client(
@@ -41,7 +41,7 @@ async function main() {
         localServer.registerTool(
             tool.name,
             tool.description ? { description: tool.description, inputSchema: tool.inputSchema as any } : { inputSchema: tool.inputSchema as any },
-            async (args) => {
+            async (args: any) => {
                 // Forward the call to the remote server
                 const result = await client.callTool({
                     name: tool.name,

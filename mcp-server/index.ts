@@ -10,7 +10,7 @@ if (!userId) {
     console.error("MCP_USER_ID environment variable is not set. Please set it to the target user's ID.");
     process.exit(1);
 }
-
+//VARUN
 // Check for FIREBASE_SERVICE_ACCOUNT (server/firebase.ts should handle this, but good to double check or let it fail there)
 if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
     console.warn("FIREBASE_SERVICE_ACCOUNT not set. Firebase might fail to initialize if not completely set up.");
