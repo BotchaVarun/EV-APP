@@ -46,7 +46,6 @@ export class FirestoreStorage implements IStorage {
     const snapshot = await db.collection("applications")
       .where("userId", "==", userId)
       .orderBy("updatedAt", "desc")
-      .orderBy("createdAt", "desc") // Tie-breaker for stable sorting if needed, though updatedAt is usually enough
       .get();
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Application));
   }
