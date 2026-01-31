@@ -4,11 +4,15 @@ import { useToast } from "@/hooks/use-toast";
 import type { InsertInterview } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
-export function useInterviews() {
+export function useInterviews(filters?: { start?: Date; end?: Date }) {
   return useQuery({
-    queryKey: [api.interviews.list.path],
+    queryKey: [api.interviews.list.path, filters?.start?.toISOString(), filters?.end?.toISOString()],
     queryFn: async () => {
-      const res = await apiRequest("GET", api.interviews.list.path);
+      const params: Record<string, string> = {};
+      if (filters?.start) params.start = filters.start.toISOString();
+      if (filters?.end) params.end = filters.end.toISOString();
+      const url = buildUrl(api.interviews.list.path, params);
+      const res = await apiRequest("GET", url);
       return api.interviews.list.responses[200].parse(await res.json());
     },
   });

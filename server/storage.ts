@@ -18,9 +18,9 @@ export interface IStorage {
   updateApplication(id: string, app: Partial<InsertApplication>): Promise<Application>;
   deleteApplication(id: string): Promise<void>;
 
-  getInterviews(userId: string): Promise<Interview[]>;
+  getInterviews(userId: string, filters?: { startDate?: Date; endDate?: Date }): Promise<Interview[]>;
   getInterview(id: string): Promise<Interview | undefined>;
-  createInterview(interview: InsertInterview): Promise<Interview>;
+  createInterview(interview: InsertInterview & { userId?: string }): Promise<Interview>;
   updateInterview(id: string, interview: Partial<InsertInterview>): Promise<Interview>;
   deleteInterview(id: string): Promise<void>;
 
@@ -46,6 +46,7 @@ export class FirestoreStorage implements IStorage {
     const snapshot = await db.collection("applications")
       .where("userId", "==", userId)
       .orderBy("updatedAt", "desc")
+      .orderBy("createdAt", "desc") // Tie-breaker for stable sorting if needed, though updatedAt is usually enough
       .get();
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Application));
   }
@@ -85,28 +86,15 @@ export class FirestoreStorage implements IStorage {
     await db.collection("applications").doc(id).delete();
   }
 
-  async getInterviews(userId: string): Promise<Interview[]> {
-    // Firestore doesn't support joins easily.
-    // Strategy: Get applications for user, then get interviews for those applications.
-    // OR: Store userId on interviews too (denormalization).
-    // For now, let's fetch interviews and filter by checking application ownership? 
-    // No, that's inefficient.
-    // Better: Add userId to interviews collection for efficient querying.
-    // Since I can't easily change the schema of *existing* data (none), I will enforce userId on interviews in the logic.
+  async getInterviews(userId: string, filters?: { startDate?: Date; endDate?: Date }): Promise<Interview[]> {
+    // Optimization: If interviews have userId, we can query them directly.
+    // Since we are migrating, we might check if we can rely on userId.
+    // For now, we stick to the reliable applicationId check but add date filtering.
 
-    // WAIT, I should assume I CAN modify how it's stored.
-    // I will filter by 'applicationId' in the input but querying across all interviews for a user requires knowing the user's applications or storing userId on interview.
-    // Let's modify the creation to store userId or fetch applications first.
-    // Fetching applications first is safer for relational consistency without denormalizing.
-
-    // However, for efficiency, I'll fetch *all* interviews for the applications the user owns.
     const apps = await this.getApplications(userId);
     if (apps.length === 0) return [];
 
     const appIds = apps.map(a => a.id);
-    // Firestore 'in' query supports up to 10 entities. If more, we need multiple queries.
-    // For simple implementation, let's assume < 30 apps or handle batches.
-
     const chunks = [];
     for (let i = 0; i < appIds.length; i += 10) {
       chunks.push(appIds.slice(i, i + 10));
@@ -114,10 +102,17 @@ export class FirestoreStorage implements IStorage {
 
     let allInterviews: Interview[] = [];
     for (const chunk of chunks) {
-      const snapshot = await db.collection("interviews")
-        .where("applicationId", "in", chunk)
-        .orderBy("interviewDate", "desc")
-        .get();
+      let query = db.collection("interviews")
+        .where("applicationId", "in", chunk);
+
+      if (filters?.startDate) {
+        query = query.where("interviewDate", ">=", filters.startDate);
+      }
+      if (filters?.endDate) {
+        query = query.where("interviewDate", "<=", filters.endDate);
+      }
+
+      const snapshot = await query.orderBy("interviewDate", "desc").get();
       allInterviews = allInterviews.concat(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Interview)));
     }
 
@@ -130,7 +125,8 @@ export class FirestoreStorage implements IStorage {
     return { id: doc.id, ...doc.data() } as Interview;
   }
 
-  async createInterview(interview: InsertInterview): Promise<Interview> {
+  async createInterview(interview: InsertInterview & { userId?: string }): Promise<Interview> {
+    // We optionally store userId to enable future direct querying optimization
     const cleanData = JSON.parse(JSON.stringify(interview));
     const ref = await db.collection("interviews").add(cleanData);
     return { id: ref.id, ...interview } as Interview;

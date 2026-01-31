@@ -14,14 +14,19 @@ import type { InsertInterview } from "@shared/schema";
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const { data: interviews, isLoading } = useInterviews();
-  const [isAddOpen, setIsAddOpen] = useState(false);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const startDate = startOfWeek(monthStart);
   const endDate = endOfWeek(monthEnd);
+
+  const { data: interviews, isLoading } = useInterviews({ start: startDate, end: endDate });
+  const { data: applications } = useApplications();
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const days = eachDayOfInterval({ start: startDate, end: endDate });
+
+  // Optimization: Create a map for O(1) application lookup
+  const appMap = new Map(applications?.map(app => [app.id, app]));
 
   const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
@@ -82,7 +87,11 @@ export default function CalendarPage() {
 
                 <div className="space-y-1">
                   {dayInterviews?.map(interview => (
-                    <InterviewItem key={interview.id} interview={interview} />
+                    <InterviewItem
+                      key={interview.id}
+                      interview={interview}
+                      application={appMap.get(interview.applicationId)}
+                    />
                   ))}
                 </div>
               </div>
@@ -96,19 +105,14 @@ export default function CalendarPage() {
   );
 }
 
-function InterviewItem({ interview }: { interview: any }) {
-  const { data: app } = useApplications(); // This is inefficient in a loop, normally we'd join in backend or fetch all apps once
-  // For now, assuming interview object might not have app name directly if not joined.
-  // Ideally, backend should return application details with interview.
-
-  // Workaround: if backend doesn't join, we rely on the client cache of applications
-  // But let's assume we just show round and time
-
+function InterviewItem({ interview, application }: { interview: any, application?: any }) {
   const { mutate: deleteInterview } = useDeleteInterview();
 
   return (
     <div className="group relative bg-purple-50 border border-purple-100 rounded-lg p-1.5 text-xs cursor-pointer hover:bg-purple-100 transition-colors">
-      <div className="font-semibold text-purple-900 truncate">{interview.round}</div>
+      <div className="font-semibold text-purple-900 truncate" title={application?.company}>
+        {application ? `${application.company} - ${interview.round}` : interview.round}
+      </div>
       <div className="text-purple-700">{format(new Date(interview.interviewDate), 'h:mm a')}</div>
 
       <button

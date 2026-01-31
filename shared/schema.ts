@@ -26,6 +26,7 @@ export const insertApplicationSchema = applicationSchema.omit({
 
 export const interviewSchema = z.object({
   id: z.string(),
+  userId: z.string().optional(), // Added for future queries
   applicationId: z.string(), // Changed to string for Firestore
   round: z.string().min(1, "Round is required"), // HR, Technical, Final
   interviewDate: z.coerce.date(),

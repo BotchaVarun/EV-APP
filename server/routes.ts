@@ -107,7 +107,15 @@ export function registerRoutes(
 
   // Interviews
   app.get(api.interviews.list.path, requireAuth, async (req, res) => {
-    const interviews = await storage.getInterviews(req.user!.uid);
+    const start = req.query.start ? new Date(req.query.start as string) : undefined;
+    const end = req.query.end ? new Date(req.query.end as string) : undefined;
+
+    // Validate dates if provided
+    if ((req.query.start && isNaN(start!.getTime())) || (req.query.end && isNaN(end!.getTime()))) {
+      return res.status(400).json({ message: "Invalid date format for start or end parameters" });
+    }
+
+    const interviews = await storage.getInterviews(req.user!.uid, { startDate: start, endDate: end });
     res.json(interviews);
   });
 
@@ -120,7 +128,7 @@ export function registerRoutes(
 
     try {
       const input = api.interviews.create.input.parse(req.body);
-      const interview = await storage.createInterview(input);
+      const interview = await storage.createInterview({ ...input, userId: req.user!.uid });
       res.status(201).json(interview);
     } catch (err) {
       if (err instanceof z.ZodError) {
